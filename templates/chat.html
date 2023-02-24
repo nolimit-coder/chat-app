@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Whatsapp Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- <script src="{{url_for('static', filename='js/socketio.js')}}"></script> -->
+
+</head>
+
+<body>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <div class="container app">
+        <div class="row app-one">
+            <div class="col-sm-4 side">
+                <div class="side-one">
+                    <div class="row heading">
+                        <div class="heading-avatar">
+                            <p>Current Room: <b id="room">{{ room }}</b></p>
+                        </div>
+                    </div>
+                    <div class="row searchBox">
+                        <div class="col-sm-12 searchBox-inner">
+                            <div class="form-group has-feedback">
+                                <input id="searchText" type="text" class="form-control" name="searchText"
+                                    placeholder="Search">
+                                <span class="glyphicon glyphicon-search form-control-feedback"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row sideBar" id="listConnected">
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-8 conversation">
+                <div class="row heading">
+                    <div class="col-sm-2 col-md-1 col-xs-3 heading-avatar">
+                        <div class="heading-avatar-icon">
+                            <img
+                                src="https://images.assetsdelivery.com/compings_v2/thesomeday123/thesomeday1231712/thesomeday123171200009.jpg">
+                        </div>
+                    </div>
+                    <div class="col-sm-8 col-xs-7 heading-name">
+                        <a class="heading-name-meta" id="username">{{ username }}
+                        </a>
+                        <span class="heading-online">Online</span>
+                    </div>
+                    <div class="col-sm-1 col-xs-1  heading-dot pull-right">
+                        <i class="fa fa-ellipsis-v fa-2x  pull-right" aria-hidden="true"></i>
+                    </div>
+                </div>
+                <div class="row message" id="conversation">
+                    <div class="row message-previous">
+                        <div class="col-sm-12 previous">
+
+                        </div>
+
+                    </div>
+
+                </div>
+                <p id="writing"></p>
+                <div class="row reply">
+
+                    <form id="form" action="">
+                        <div class="col-sm-1 col-xs-1 reply-emojis">
+                            <i class="fa fa-smile-o fa-2x"></i>
+                        </div>
+                        <div class="col-sm-9 col-xs-9 reply-main">
+                            <textarea class="form-control" rows="1" id="message"
+                                placeholder="Type a message..."></textarea>
+                        </div>
+                        <div class="col-sm-1 col-xs-1 reply-recording">
+                            <button type="button" id="btn_rec" class="fa fa-microphone fa-2x" aria-hidden="true"></i>
+                        </div>
+
+                        <div class="col-sm-1 col-xs-1 reply-send">
+                            <button type="submit" id="btn_send" class="fa fa-send fa-2x" aria-hidden="true"></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        function add_bubble(text, user) {
+            var row_message_body = document.createElement("div");
+            var main_sender = document.createElement("div");
+            var sender = document.createElement("div");
+            var message_text = document.createElement("div");
+
+            row_message_body.className = "row message-body";
+
+            if (user == "sender") {
+                main_sender.className = "col-sm-12 message-main-sender";
+                sender.className = "sender";
+            }
+            else {
+                main_sender.className = "col-sm-12 message-main-receiver";
+                sender.className = "receiver";
+            }
+
+            message_text.className = "message-text";
+            message_text.value = text;
+            text_content = document.createTextNode(text);
+
+            message_text.appendChild(text_content);
+            sender.appendChild(message_text);
+            main_sender.appendChild(sender);
+            row_message_body.appendChild(main_sender);
+
+            document.getElementById("conversation").appendChild(row_message_body);
+        }
+
+        var socket = io();
+        currentUser = document.getElementById("username").innerText
+        room = document.getElementById("room").innerText
+        socket.auth = { "username": currentUser, "room": room }
+
+        var form = document.getElementById('form');
+        var input = document.getElementById('message');
+        var timeout;
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', { 'username': currentUser, 'message': input.value, 'room': room });
+                add_bubble(input.value, 'sender');
+                input.value = '';
+                const element = document.getElementById('conversation');
+                element.scrollTop = element.scrollHeight;
+            }
+        });
+
+        socket.on('chat message', function (data) {
+            add_bubble(data['message'], "receiver");
+            const element = document.getElementById('conversation');
+            element.scrollTop = element.scrollHeight;
+        });
+
+
+        const connectedUserDiv = (username) => {
+            console.log(username)
+            return `
+            <div class="row sideBar-body">
+                            <div class="col-sm-3 col-xs-3 sideBar-avatar">
+                                <div class="avatar-icon">
+
+                                    <img
+                                        src="https://images.assetsdelivery.com/compings_v2/thesomeday123/thesomeday1231712/thesomeday123171200009.jpg">
+                                </div>
+                            </div>
+                            <div class="col-sm-9 col-xs-9 sideBar-main">
+                                <div class="row">
+                                    <div class="col-sm-8 col-xs-8 sideBar-name">
+                                        <span class="name-meta">${username}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+            `;
+        }
+        socket.on('connected users', function (data) {
+            var listConnected = document.getElementById('listConnected');
+            listConnected.textContent = ""
+            for (var sid in data) {
+                if (data[sid][1] == room) {
+                    listConnected.innerHTML += connectedUserDiv(data[sid][0])
+                }
+            }
+        });
+
+        function timeoutfunc() {
+            socket.emit('writing', { 'username': currentUser, 'room': room, 'writing': false })
+        }
+
+        message.addEventListener('keyup', function () {
+            socket.emit('writing', { 'username': currentUser, 'room': room, 'writing': true })
+            clearTimeout(timeout)
+            timeout = setTimeout(timeoutfunc, 1000)
+        }
+        );
+
+        socket.on('writing', function (data) {
+            var writing = document.getElementById('writing');
+            if (data["writing"]) {
+                writing.textContent = data['username'] + ' is writing...'
+            }
+            else {
+                writing.textContent = ''
+            }
+        });
+    </script>
+</body>
+
+</html>
